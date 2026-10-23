@@ -1,4 +1,8 @@
 # Language-neutral on purpose: a harness in Go or Rust gets a job of its own with its own glob.
+# Quiet when all is well: one line per job; a failed job prints its whole output.
+output:
+  - summary
+  - failure
 pre-commit:
   parallel: true
   jobs:
@@ -14,4 +18,8 @@ pre-commit:
       run: bunx tsc -p core
     - name: claude-code plugin
       glob: "{adapters/claude-code/**,core/src/**}"
-      run: claude plugin validate adapters/claude-code && claude plugin test adapters/claude-code
+      run: claude plugin validate adapters/claude-code
+    - name: claude-code tests
+      glob: "{adapters/claude-code/**,core/src/**}"
+      # Passed tests are left out, a failed one is printed whole.
+      run: bash -o pipefail -c "claude plugin test adapters/claude-code 2>&1 | grep -v '^(pass) '"
