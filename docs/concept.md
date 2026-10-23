@@ -55,9 +55,23 @@ Records and everything the agent reads are in English: the readers are agents.
 
 ## Hint
 
-**[done in the Claude Code mod]** — soft, hard and a safety net; the "what it grew from" breakdown and `shift_status` do not exist yet.
+**[done in the Claude Code mod]** — soft, final and a safety net; the "what it grew from" breakdown and `shift_status` do not exist yet.
 
-How it is done: the start of a stretch is the first fill after any shift or harness compaction. Soft — growth since the start of the stretch and since the previous hint of at least 50K. Hard — no more than `max(30K, 10% of the threshold)` is left before the harness's auto-compaction threshold, and at least the benefit threshold has been added since the previous hint; the threshold is read once, when the window is half full. Safety net — after the harness has compressed, the agent is told that there is no letter and the board must be read. The hint goes inside the last tool result, wrapped in `<system-reminder>` — a text block of its own in that row was shown to the owner as their own message; between turns it goes into the context of the next message. It stays in the history: the harness gives no temporary channel to the model; loops are restrained by the rule "one hint per new growth".
+How it is done: the start of a stretch is the first fill after any shift or harness compaction. Every threshold is a share of the limit L — the harness's auto-compaction threshold, or the window when it is unknown; Claude Code's threshold is read once, when the window is half full. Windows differ several times over (1M, 272K, 128K), and fixed steps made hints frequent on small windows and rare on large ones; shares keep the rhythm the same.
+
+- **Soft** — every `max(100K, 25% of L)` of growth since the start of the stretch or the previous hint. A shorter stretch does not pay for its own letter and records (10–20K). No soft hint when the final one is less than half a step away.
+- **Final** — at 80% of L, with room left to finish a stage; again every 5% of L after it.
+- **Benefit threshold** — no hint at all until the stretch has grown by 5% of L, so a shift that leaves the window full does not loop.
+- **Safety net** — after the harness has compressed by itself, the agent is told that there is no letter and the board must be read.
+
+| window | soft | final |
+|---|---|---|
+| 1M | ~250K, ~500K | ~800K |
+| 272K | ~100K | ~218K |
+| 200K | — | ~160K |
+| 128K | — | ~102K |
+
+The hint goes inside the last tool result, wrapped in `<system-reminder>` — a text block of its own in that row was shown to the owner as their own message; between turns it goes into the context of the next message. It stays in the history: the harness gives no temporary channel to the model; loops are restrained by the rule "one hint per new growth".
 
 A bare fill percentage is a bad signal. In billion-context, a model that sees "20%" anchors on it and refuses to fold. The percentage also says nothing about what to fold: windows come in 200K and 1M, and 30% of a window can be one useful file read or a dozen test logs.
 
@@ -68,15 +82,15 @@ I propose two signals with different meanings:
 
 And three levels:
 
-1. **Soft.** Growth above a threshold (starting point — about 50K, as in billion-context). One line: how much it grew and from what — for example, "+62K since the last compaction, of which 40K are tool outputs". No percentage. The agent may decline; the next soft hint comes only after new growth.
-2. **Hard.** The fill is close to the harness's auto-compaction threshold. A request to fold at the nearest stage boundary.
+1. **Soft.** Growth above a threshold (billion-context used about 50K; here it is a share of the limit, see above). One line: how much it grew and from what — for example, "+62K since the last compaction, of which 40K are tool outputs". No percentage. The agent may decline; the next soft hint comes only after new growth.
+2. **Final.** The fill is close to the harness's auto-compaction threshold. A request to fold at the nearest stage boundary.
 3. **Safety net.** The harness's auto-compaction fired before the agent did. The adapter adds the doctrine to its instructions, and after the compaction tells the agent that it was compressed without its participation and there is no handoff.
 
 The hint comes at boundaries, not on every turn: a plan item is closed, a commit is made, a turn has ended. Thresholds are computed from the available window of the specific model and tuned by measurement.
 
 Limiters taken from billion-context:
 
-- **Benefit threshold.** After a compaction the context may stay large. If less than `max(5K, 1% of the window)` has been added since the last fold, there is no hint even at high fill, otherwise a "folded — hint again" loop appears (their #198).
+- **Benefit threshold.** After a compaction the context may stay large. If too little has been added since the last fold (here 5% of the limit), there is no hint even at high fill, otherwise a "folded — hint again" loop appears (their #198).
 - **An ignored hint is not repeated on every turn.** The next one comes only after new growth.
 - **The soft hint says outright that it is not an alarm** and that a real shortage will get a separate warning. This is how their `efficiencyNote` is worded.
 - **The hint does not settle in the history, if the harness allows it.** Instructions saved as messages pushed the model toward loops again in their case (`UNIFIED_LOOP_SPEC.md`).

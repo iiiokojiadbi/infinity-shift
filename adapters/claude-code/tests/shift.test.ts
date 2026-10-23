@@ -360,29 +360,48 @@ test('task_archive moves the folder and writes the index line', async ($, on) =>
   expect(again.deny).toContain('already exists')
 })
 
-test('hints: soft on growth, once per growth, hard near the threshold, told after an unasked let-go', () => {
-  const at = (tokens: number | undefined) => ({ tokens, window: 200000, threshold: 160000 })
+test('hints: soft every max(100K, 25%) of the limit, none right before the final, final at 80% and every 5% after', () => {
   let gauge = FRESH_GAUGE
-  const step = (tokens: number | undefined) => {
-    const hint = shiftHint(gauge, at(tokens))
+  const step = (tokens: number | undefined, window: number, threshold?: number) => {
+    const hint = shiftHint(gauge, { tokens, window, threshold })
     gauge = hint.gauge
     return hint.text
   }
+  const big = (tokens: number | undefined) => step(tokens, 1_000_000)
 
-  expect(step(undefined)).toBeNull()
-  expect(step(20000)).toBeNull()
-  expect(step(60000)).toBeNull()
-  expect(step(75000)).toContain('grown by 55K')
-  expect(step(100000)).toBeNull()
-  expect(step(125000)).toContain('grown by 105K')
-  expect(step(131000)).toContain('131K of 160K used')
-  expect(step(133000)).toBeNull()
-  expect(step(137000)).toContain('137K of 160K')
+  expect(big(undefined)).toBeNull()
+  expect(big(20_000)).toBeNull()
+  expect(big(200_000)).toBeNull()
+  expect(big(270_000)).toContain('grown by 250K')
+  expect(big(300_000)).toBeNull()
+  expect(big(520_000)).toContain('grown by 500K')
+  expect(big(770_000)).toBeNull()
+  expect(big(800_000)).toContain('800K of 1000K used')
+  expect(big(820_000)).toBeNull()
+  expect(big(850_000)).toContain('850K of 1000K')
+
+  gauge = FRESH_GAUGE
+  const mid = (tokens: number) => step(tokens, 272_000)
+  expect(mid(9_000)).toBeNull()
+  expect(mid(109_000)).toContain('grown by 100K')
+  expect(mid(209_000)).toBeNull()
+  expect(mid(218_000)).toContain('218K of 272K')
+
+  gauge = FRESH_GAUGE
+  const small = (tokens: number) => step(tokens, 200_000, 128_000)
+  expect(small(9_000)).toBeNull()
+  expect(small(100_000)).toBeNull()
+  expect(small(103_000)).toContain('103K of 128K')
+
+  gauge = FRESH_GAUGE
+  expect(big(850_000)).toBeNull()
+  expect(big(855_000)).toBeNull()
+  expect(big(900_000)).toContain('900K of 1000K')
 
   gauge = { ...FRESH_GAUGE, unassisted: true }
-  expect(step(undefined)).toBeNull()
-  expect(step(40000)).toContain('without your shift')
-  expect(step(41000)).toBeNull()
+  expect(big(undefined)).toBeNull()
+  expect(big(40_000)).toContain('without your shift')
+  expect(big(41_000)).toBeNull()
 })
 
 test('a hint rides on a tool result and on a prompt, and a let-go starts a new stretch', async ($, on) => {
@@ -404,11 +423,11 @@ test('a hint rides on a tool result and on a prompt, and a let-go starts a new s
     })
 
   await toolResult()
-  tokens = 80000
+  tokens = 165000
   const hinted = (await toolResult()).message?.content
   expect(hinted?.length).toBe(1)
   expect(JSON.stringify(hinted?.[0])).toContain('"content":"ok\\n\\n<system-reminder>\\nShift hint')
-  tokens = 85000
+  tokens = 170000
   expect(JSON.stringify(await toolResult())).not.toContain('Shift hint')
   tokens = 175000
   await $.prompt.submit({ text: 'owner', origin: { kind: 'composer' }, wait: false })
