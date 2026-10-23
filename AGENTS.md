@@ -46,6 +46,7 @@ lefthook.yml  biome.json  package.json
 - `bun run check` (copies + biome), `bun run fix`, `bun run typecheck`, `bun run test`, `bun run validate`.
 - Install for Claude Code: `claude plugin marketplace add iiiokojiadbi/claude-plugins`, then `claude plugin install infinity-shift@iiiokojiadbi`. That marketplace is a separate repo listing all of the owner's plugins; it points at `adapters/claude-code` here.
 - Local development: `claude plugin marketplace add <path to this repo>` and `claude plugin install infinity-shift@infinity-shift` — a marketplace added from a local path loads the plugin in place, edits apply on `/reload-plugins`. Do not have both installed at once.
+- Release: bump `version` in `adapters/claude-code/.claude-plugin/plugin.json`, run `claude plugin tag adapters/claude-code --push` (tag `infinity-shift--v<version>`), then set the entry's `ref` to that tag in the `iiiokojiadbi/claude-plugins` catalog. Users get only tagged releases.
 - Lint findings are fixed, never silenced.
 
 ## Facts that are not obvious from the code
