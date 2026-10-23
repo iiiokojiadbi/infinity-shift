@@ -30,7 +30,7 @@ adapters/
     hooks/core/            GENERATED copy of core/src — never edit
     types/index.d.ts       the plugin's state contract
     tests/                 `claude plugin test` suites
-.claude-plugin/marketplace.json   the repo as a marketplace; lists adapters/claude-code
+.claude-plugin/marketplace.json   the repo as a local marketplace for development; lists adapters/claude-code
 scripts/sync-core.ts       copies core/src into every adapter; --check fails on a stale copy
 docs/concept.md            the concept, the loop, the records, hints, core and adapters, lessons
 docs/archive/              superseded design notes, kept for reasoning
@@ -44,7 +44,8 @@ lefthook.yml  biome.json  package.json
 - Tooling: bun. `bun install` also installs the git hooks (lefthook).
 - Edit shared logic only in `core/src/`, then `bun run sync-core`. A harness may load only files inside its plugin folder, so each adapter carries a copy; the pre-commit hook fails on a stale one.
 - `bun run check` (copies + biome), `bun run fix`, `bun run typecheck`, `bun run test`, `bun run validate`.
-- Install for Claude Code: `claude plugin marketplace add <path to this repo>`, then `claude plugin install infinity-shift@infinity-shift`. A marketplace added from a local path loads the plugin in place: edits apply on `/reload-plugins`.
+- Install for Claude Code: `claude plugin marketplace add iiiokojiadbi/claude-plugins`, then `claude plugin install infinity-shift@iiiokojiadbi`. That marketplace is a separate repo listing all of the owner's plugins; it points at `adapters/claude-code` here.
+- Local development: `claude plugin marketplace add <path to this repo>` and `claude plugin install infinity-shift@infinity-shift` — a marketplace added from a local path loads the plugin in place, edits apply on `/reload-plugins`. Do not have both installed at once.
 - Lint findings are fixed, never silenced.
 
 ## Facts that are not obvious from the code
