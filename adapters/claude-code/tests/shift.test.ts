@@ -331,16 +331,8 @@ test("wait: the letter rides along with the owner's next prompt, once", async ($
   expect(String(contexts[1])).toContain('fixing tests')
   expect(String(contexts[1])).toContain('fix the parser')
   expect(contexts[2] ?? []).toEqual([])
-  expect(logs).toEqual([
-    expect.stringContaining('waiting for you, the letter goes with your next message'),
-    expect.stringMatching(/^status: .*waiting for you/),
-    'entered: a notification',
-    'status: ',
-    'entered: owner speaks',
-    expect.stringContaining('went with your message'),
-    'entered: owner again',
-  ])
-  expect(logs.some(line => line.includes('infinity-shift:'))).toBe(false)
+  // A shift that went well shows the owner nothing.
+  expect(logs).toEqual(['entered: a notification', 'entered: owner speaks', 'entered: owner again'])
   expect(files.get(`${DIR}/about.md`)).toContain('waiting for the owner')
 })
 

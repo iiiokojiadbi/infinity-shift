@@ -40,7 +40,6 @@ export async function handOver($: EngineInterface): Promise<void> {
   if (shift.after === 'continue' && !isCapped) {
     await update($, autoStreak, () => streak)
     await outcome(`shifted (${shrank}), continuing`, after, summary.length, before)
-    $.ui.log(`shift ${name} done (${shrank}), continuing from the letter — ${shift.dir}/letter.md`)
     await $.prompt.submit({ text: continuePrompt(shift.letter, work, shift.dir) })
     return
   }
@@ -48,8 +47,4 @@ export async function handOver($: EngineInterface): Promise<void> {
   await update($, waitNote, () => ({ context: waitContext(shift.letter, work, shift.dir), dir: shift.dir }))
   const why = isCapped ? `waiting: ${MAX_AUTO_STREAK} shifts in a row without the owner` : 'waiting for the owner'
   await outcome(`shifted (${shrank}), ${why}`, after, summary.length, before)
-  const capped = isCapped ? `, ${MAX_AUTO_STREAK} in a row without you` : ''
-  $.ui.log(`shift ${name} done (${shrank})${capped} — waiting for you, the letter goes with your next message`)
-  // A log row waits for the next frame, and an idle terminal draws none; the status line is drawn at once.
-  $.ui.status(`shift ${name} done — waiting for you`)
 }

@@ -209,14 +209,17 @@ export const register: Register = on => {
     await update($, autoStreak, () => 0)
     const note: WaitNote | null = await read($, waitNote)
     if (note === null) return next(hinted)
-    await update($, waitNote, () => null)
-    $.ui.status(undefined)
-    // Logged once the message has entered, so the row stands under it.
+    // Cleared only once the message has entered with it: a failed hook keeps the letter for the next one.
     const entered = await next({ ...hinted, context: [...(hinted.context ?? []), note.context] })
-    $.ui.log(`the letter, the board and the tasks in progress went with your message — ${note.dir}/letter.md`)
+    await update($, waitNote, () => null)
 
     return entered
-  }).catch((_$, e, next) => next(e))
+  }).catch(($, e, next) => {
+    // Silent before, the letter once went missing with no trace; a failure is the one row worth showing.
+    $.ui.log(`the letter did not go with your message (${next.error?.kind ?? 'unknown'}: ${next.error?.message ?? 'no message'})`)
+
+    return next(e)
+  })
 
   // Any let-go of the main history starts a new stretch; one the agent did not ask for is told to it at its next look.
   on('session.compact', async ($, e, next) => {
