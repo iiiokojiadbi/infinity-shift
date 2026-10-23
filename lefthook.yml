@@ -1,0 +1,17 @@
+# Language-neutral on purpose: a harness in Go or Rust gets a job of its own with its own glob.
+pre-commit:
+  parallel: true
+  jobs:
+    - name: core copies
+      glob: "{core/src/**,adapters/*/hooks/core/**}"
+      run: bun scripts/sync-core.ts --check
+    - name: biome
+      glob: "*.{ts,js,json,jsonc}"
+      run: bunx biome check --write --no-errors-on-unmatched --files-ignore-unknown=true {staged_files}
+      stage_fixed: true
+    - name: core types
+      glob: "core/**/*.ts"
+      run: bunx tsc -p core
+    - name: claude-code plugin
+      glob: "{adapters/claude-code/**,core/src/**}"
+      run: claude plugin validate adapters/claude-code && claude plugin test adapters/claude-code

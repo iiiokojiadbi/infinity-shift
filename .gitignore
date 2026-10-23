@@ -1,0 +1,4 @@
+node_modules/
+.claude/
+.infinity-shift/
+.claude-plugin/types/
