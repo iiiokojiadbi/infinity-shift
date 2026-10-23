@@ -136,7 +136,7 @@ test('knowledge files have a kind, an about, their entry fields and room', () =>
   const file = (name: string, text: string) => checkWork({ ...WORK, knowledge: [{ name, text }] }, null)
   expect(file('traps.md', TRAPS)).toBeNull()
   expect(file('traps-tooling.md', TRAPS)).toBeNull()
-  expect(file('notes.md', TRAPS.replace('kind: traps', 'kind: notes'))).toContain('one of traps, lessons, runbook, glossary')
+  expect(file('notes.md', TRAPS.replace('kind: traps', 'kind: notes'))).toContain('one of traps, lessons, runbook, facts, glossary')
   expect(file('lessons.md', TRAPS)).toContain('traps.md or traps-<topic>.md')
   expect(file('traps.md', TRAPS.replace(/about: .*/, 'about:'))).toContain('"about"')
   expect(file('traps.md', TRAPS.replace('**Do.**', 'Do:'))).toContain('"### The script stopped on the third replacement"')
@@ -145,6 +145,9 @@ test('knowledge files have a kind, an about, their entry fields and room', () =>
   const runbook = '---\nkind: runbook\nabout: commands\n---\n\n### Check\n\n**Shows.** green.'
   expect(file('runbook.md', runbook)).toContain('a command block')
   expect(file('runbook.md', runbook.replace('**Shows.**', '    bun run check\n\n**Shows.**'))).toBeNull()
+  expect(file('facts.md', '---\nkind: facts\nabout: how the harness behaves\n---\n\n### Plugins load from the cache\n\nA copy.')).toContain(
+    '"**Source.**"',
+  )
   expect(file('glossary.md', '---\nkind: glossary\nabout: terms\n---\n\n- **shift** — the boundary')).toBeNull()
   expect(knowledgeMap(WORK.knowledge)).toBe(
     '- .infinity-shift/knowledge/traps.md — traps of edits and tests; lessons — lessons.md (1 entries)',

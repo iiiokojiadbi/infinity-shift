@@ -58,6 +58,7 @@ export const KINDS = {
   traps: ['**Cause.**', '**Do.**'],
   lessons: ['**Why.**', '**Not when.**'],
   runbook: ['**Shows.**'],
+  facts: ['**Source.**'],
   glossary: [],
 } as const satisfies Record<string, readonly string[]>
 

@@ -42,26 +42,28 @@ const OWNER_RULES = `\`${OWNER}\` is the owner's decisions in force for the whol
 const KNOWLEDGE_KINDS = `- \`traps\` — what behaves not as expected: \`### <symptom>\`, then ${KINDS.traps.join(' and ')};
 - \`lessons\` — an approach that worked or failed: \`### <approach>\`, then ${KINDS.lessons.join(' and ')};
 - \`runbook\` — what is run and with what: \`### <task>\`, a command block, then ${KINDS.runbook.join(' and ')};
+- \`facts\` — how the project, its tools or its harness behave: \`### <fact>\`, then ${KINDS.facts.join(' and ')} (how it was established);
 - \`glossary\` — the project's own names, codes, abbreviations: \`- **<term>** — <meaning>\` lines.`
 
-const KNOWLEDGE_RULES = `\`${KNOWLEDGE}/\` is what you learned about doing this work that stays true for months: traps, lessons, commands, terms. One file per kind — \`<kind>.md\`, or \`<kind>-<topic>.md\` once split by topic; a frontmatter with \`kind\` and \`about\` (what is in the file and where the neighbouring files are); entries grouped under \`##\` headings by topic. Kinds and the fields every entry carries:
+const KNOWLEDGE_RULES = `\`${KNOWLEDGE}/\` is what you learned that stays true for months: traps, lessons, commands, facts, terms. One file per kind — \`<kind>.md\`, or \`<kind>-<topic>.md\` once split by topic; a frontmatter with \`kind\` and \`about\` (what is in the file and where the neighbouring files are); entries grouped under \`##\` headings by topic. Kinds and the fields every entry carries:
 ${KNOWLEDGE_KINDS}
 
 No dates, no more than ${KNOWLEDGE_MAX_LINES} lines per file. Freshness is checked when an entry is used, not by age: an entry that lied is fixed or removed right away; a trap met a third time is rewritten as a rule. Writing into a section, clear out what is dead there: a trap about code that is gone, an entry a later one covers, a one-off case with no conclusion, a copy of the project's docs. After a shift only the map of knowledge comes back — read a file when its topic comes up.`
 
 const PLACES = `| What | Where |
 |---|---|
-| how the project is built, its conventions and commands every contributor needs | the project's own docs (\`AGENTS.md\`, \`docs/\`) — never copied into your records |
 | the owner's decision for the whole project | \`${OWNER}\` |
 | the owner's decision for one task | that task's "${OWNER_SECTION}" |
 | your decision or dead end for the whole project | the board |
 | your decision or dead end for one task | the task's \`task.md\` |
 | open work and its progress | \`${TASKS}/<name>/\` |
-| a trap, a lesson, a command or a term of your own work | \`${KNOWLEDGE}/\` |
 | what you were doing, what is next, what is unverified | the letter |
+| a trap, a lesson, a command, a fact, a term | \`${KNOWLEDGE}/\`, unless the owner said it goes to the project's docs |
 | fits no row | \`${KNOWLEDGE}/\`, and tell the owner |
 
-Each fact lives in one place. Your records live in the project, not in a harness's memory: any agent that opens the project reads them.`
+Whether knowledge goes into the project's own docs (\`AGENTS.md\`, \`docs/\`, read by people and every contributor) or stays in \`${KNOWLEDGE}/\` is the owner's choice, not yours: all of it in the docs, all of it local, or split by a boundary the owner names. It is an owner decision and lives in \`${OWNER}\`. Until the owner said, everything stays in \`${KNOWLEDGE}/\` — never write the project's shared files on your own guess — and ask the owner once. What the project's docs already say is never copied into your records.
+
+Each fact lives in one place. Your records live in the project directory, not in a harness's memory: any agent that opens the project reads them.`
 
 const TASK_RULES = `A task is one line of work, split by meaning: a feature, an adapter, a migration. Each lives in \`${TASKS}/<name>/\`, \`<name>\` in lowercase latin with dashes:
 - \`task.md\` — what the task is: a \`# <title>\` line; optionally \`continues: ${ARCHIVE}/<name>/\` lines, one per archived task it picks up; then sections ${TASK_SECTIONS.map(s => `"${s}"`).join(', ')}, all required ("none" if empty). Update it as the task changes. Decisions and dead ends that matter only inside this task go here;
@@ -87,7 +89,7 @@ A finished or dropped task goes to the archive through \`${ARCHIVE_TOOL}\`; \`${
 
 ${OWNER_RULES}
 
-\`${KNOWLEDGE}/\` holds traps, lessons, commands and terms of your own work, one file per kind (${Object.keys(KINDS).join(', ')}); write an entry when you learn it, read a file when its topic comes up. The layout and entry fields are in \`${GUIDE_TOOL}\`.
+\`${KNOWLEDGE}/\` holds traps, lessons, commands, facts and terms, one file per kind (${Object.keys(KINDS).join(', ')}); write an entry when you learn it, read a file when its topic comes up. The layout and entry fields are in \`${GUIDE_TOOL}\`.
 
 What goes where:
 
@@ -248,7 +250,7 @@ How to read it: frontmatter — \`key: value\` lines between \`---\`; sections �
 A project kept with the \`shift\`/\`unshift\` skills has \`.shift/\`. Move it once, before the first shift, entry by entry — nothing is summarized away:
 - \`knowledge/owner.md\` → \`${OWNER}\`, rules as they are;
 - \`knowledge/traps*.md\`, \`lessons*.md\`, \`runbook*.md\`, \`glossary*.md\` → \`${KNOWLEDGE}/\` under the same names: keep \`kind\` and \`about\`, rename the entry fields (Причина → Cause, Делать → Do, Почему → Why, Когда не годится → Not when, Покажет → Shows), drop the date lines and the generated tables of contents;
-- rows of \`.shift/AGENTS.md\` "Что где" that point into the project's docs stay a fact of the project: name them in a board decision; the rest is covered by the table above;
+- the \`knowledge\` setting of \`.shift/AGENTS.md\` (\`project\`, \`local\`, \`split\`) and its "Что где" rows are the owner's choice of where knowledge goes → a rule in \`${OWNER}\`, as they are;
 - open items of the last snapshot's \`unfinished.md\` and its "С чего начать" → tasks; its owner decisions → \`${OWNER}\` or the task's; dead ends → the board or the task;
 - \`.shift/sessions/\` is not moved: it is history. \`.shift/\` itself is removed only on the owner's word.
 
