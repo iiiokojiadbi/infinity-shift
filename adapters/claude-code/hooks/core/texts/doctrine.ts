@@ -120,7 +120,7 @@ ${DIR}/
 ├── board.md          the board — which tasks are open, what you do now, project-wide decisions
 ├── owner.md          the owner's decisions in force for the whole project
 ├── letter.md         the letter to yourself — written anew before every shift
-├── knowledge/        traps, lessons, commands, terms — read on demand
+├── knowledge/        traps, lessons, commands, facts, terms — read on demand
 │   └── <kind>[-<topic>].md
 ├── tasks/
 │   └── <name>/
