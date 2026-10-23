@@ -27,6 +27,7 @@ import {
   INDEX,
   indexLine,
   LETTER,
+  NOT_IGNORED,
   parseArchiveInput,
   parseHistoryCount,
   parseShiftInput,
@@ -100,6 +101,9 @@ export const register: Register = on => {
     const previous = previousDir === null ? null : await readSnapshot($, previousDir, `${previousDir}/index.md`)
     const workProblem = checkWork(work, previous?.work ?? null)
     if (workProblem !== null) return { deny: workProblem }
+    // 1 — not ignored; 128 — not a git repository, nothing to keep out.
+    const ignored = await $.process.run(['git', '-C', root, 'check-ignore', '-q', DIR])
+    if (ignored.exitCode === 1) return { deny: NOT_IGNORED }
 
     const index = await readOrNull($, `${root}/${INDEX}`)
     const at = await $.clock.now()
@@ -122,6 +126,8 @@ export const register: Register = on => {
       if (task.task !== null) await $.fs.write(`${dir}/tasks/${task.name}/task.md`, task.task)
       if (task.track !== null) await $.fs.write(`${dir}/tasks/${task.name}/track.md`, task.track)
     }
+    if (work.owner !== null) await $.fs.write(`${dir}/owner.md`, work.owner)
+    for (const file of work.knowledge) await $.fs.write(`${dir}/knowledge/${file.name}`, file.text)
     // Rewritten with the outcome once the turn ends; `pending` stays if the session dies first.
     await $.fs.write(`${dir}/about.md`, renderAbout({ ...shift, result: 'pending' }))
     await update($, pending, () => shift)

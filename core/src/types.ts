@@ -1,3 +1,5 @@
+import type { KINDS } from './layout'
+
 export type ShiftAfter = 'continue' | 'wait'
 
 // The fill the stretch started from, the fill at the last hint, and a harness-made let-go the agent is not told of yet.
@@ -15,7 +17,12 @@ export type FocusTask = { status: string; name: string; line: string }
 
 export type TaskFiles = { name: string; task: string | null; track: string | null }
 
-export type Work = { board: string; tasks: TaskFiles[] }
+export type Kind = keyof typeof KINDS
+
+// A file of `knowledge/`: its name with `.md` and its text.
+export type KnowledgeFile = { name: string; text: string }
+
+export type Work = { board: string; owner: string | null; tasks: TaskFiles[]; knowledge: KnowledgeFile[] }
 
 // What one stretch of work did, from the files against the previous shift's snapshot.
 export type Segment = { done: string[]; dropped: string[]; archived: string[]; open: string[] }

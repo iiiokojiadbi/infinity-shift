@@ -36,18 +36,25 @@ Division of roles: the digest is responsible for "what was", the letter — for 
 ```
 .infinity-shift/
 ├── board.md          which tasks are open and which are in progress; project-wide decisions and dead ends
+├── owner.md          the owner's decisions in force for the whole project
 ├── letter.md         the letter to itself, written anew before every shift
+├── knowledge/        traps, lessons, runbook, glossary — read on demand
 ├── tasks/<name>/     task.md — what the task is, its decisions and dead ends; track.md — its tracker
 ├── archive/          finished and dropped tasks; index.md — one line each
-└── shifts/<UTC>/     about.md, letter.md, board.md, index.md, tasks/, summary.md
+└── shifts/<UTC>/     about.md, letter.md, board.md, owner.md, index.md, tasks/, knowledge/, summary.md
 ```
 
 The problem it solves: sooner or later the topic of work changes, and a single board loses what was done. So each line of work is a task, split by meaning, with its own description and tracker. The board is the focus: every open task, one line each, with `in progress`, `deferred` or `waiting for owner`. From the board alone the agent knows whether it does one task, several, or none, and why something waits.
 
 - **Task.** `task.md` has a title, optional `continues: archive/<name>/` links, and sections "Goal", "Done when", "Owner decisions", "Decisions", "Dead ends". `track.md` has items `- [in progress|open|done|dropped] item — note`; closed items stay until the task is archived — the track is the task's history.
 - **Where a decision lives.** On the board only if it outlives any one task; otherwise in the task, and it goes to the archive with it. When a task is archived, decisions that still bind are lifted to the board.
+- **Owner's decisions.** `owner.md`, beside the board and with its own 150-line limit: the owner's words in force for the whole project, as a code of rules, not a log. A newer word rewrites the older line; a rule changes only on the owner's word. It comes back whole after every shift. On the board they crowded out the work: the first migrated project had 31 such lines.
+- **Knowledge.** What the agent learned about doing the work that stays true for months and is neither a decision, a dead end nor a task: `knowledge/<kind>[-<topic>].md`, kinds `traps`, `lessons`, `runbook`, `glossary`, each entry with its kind's fields, 400 lines per file. Only its map comes back after a shift; files are read on demand. It lives in the project, not in a harness's memory, so any agent reads it.
+- **What goes where** is a table in `shift_guide`: facts about the project go to its own docs, the agent's own experience to its records; one fact, one place.
+- **No dates.** Which of two rules is newer is never a question: the newer one replaced the older line. When something was decided, the snapshots tell.
+- **The directory** is the agent's own: ignored by the project's git, no git of its own — every shift snapshots the board, the owner's decisions, the tasks and the knowledge.
 - **Archive.** The `task_archive` tool moves the folder to `archive/<name>/` and adds `- [done|dropped] [<title>](<name>/) — <about>; continues …` to `archive/index.md`. To come back to an archived topic the agent opens a new task linked with `continues:`.
-- **Strictness.** The mod refuses a shift on a date anywhere in the records, a missing section, an unknown status, a board longer than 150 lines, board and task folders out of step, or nothing changed since the last shift.
+- **Strictness.** The mod refuses a shift on a date anywhere in the records, a missing section, an unknown status, a board or `owner.md` longer than 150 lines, a knowledge file of no kind or without its entry fields, board and task folders out of step, records not ignored by git, or nothing changed since the last shift.
 - **Shift history.** `about.md` lists per task what the stretch did and dropped (track items closed since the previous snapshot), which tasks were archived (new index lines), and what is open.
 - **A project tracker** (Plane or another) is a different thing: the mod's tasks are the agent's working memory and are not linked to it.
 
@@ -154,13 +161,13 @@ Sources: `~/code/reference/billion-context` at `e518363` — the article, `CHANG
 - folding an arbitrary range, `restore`, a hierarchy of blocks;
 - Codex;
 - transport and communication between sessions;
-- automatic writing into the accumulated `.shift/knowledge/` and into `owner.md`.
+- automatic writing into `knowledge/` and `owner.md`: the agent writes them, the mod only checks.
 
 ## Open forks
 
 1. **Hint.** Whether two signals and three levels are acceptable; where the stage boundary is in each harness.
 2. **Verbatim tail.** Whether a parameter "how many last turns to leave uncompressed" is needed. pi can (`firstKeptEntryId`), opencode — only through a setting (`tail_turns`), Claude Code — through substituting `messages`, not checked.
-3. **Where handoffs live and what their skeleton is.** Its own directory or the project's `.shift/`. Tied to the deferred question about the `shift` skill.
+3. **Where handoffs live** — settled: `.infinity-shift/`, ignored by the project's git; it replaces the `shift`/`unshift` skills, and `shift_guide` describes the move from `.shift/`.
 4. **The owner writes while the compaction is running.** What to do with their message in the queue.
 5. **The hint channel in Claude Code.** One is needed that does not settle in the history. `$.session.append` writes into the conversation forever; the system prompt cannot be changed — it would break the cache. To be found by experiment.
 6. **Limit of autonomy.** `continue`, work, `shift`, `continue` can spin without the owner indefinitely. A limit is needed on consecutive shifts without their message, after which the mode is forced to `wait`, and a criterion "work is finished" in the note itself.

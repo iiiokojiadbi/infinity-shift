@@ -10,6 +10,7 @@ import {
   FRESH_GAUGE,
   frontmatter,
   indexLine,
+  knowledgeMap,
   parseArchiveInput,
   parseHistoryCount,
   parseShiftInput,
@@ -27,18 +28,7 @@ const LETTER = ['## Where I am', 'fixing tests', '## Next', 'claude plugin test'
 )
 
 function boardWith(taskLines: string[]): string {
-  return [
-    '## Goal',
-    'the mod',
-    '## Tasks',
-    ...taskLines,
-    '## Owner decisions',
-    'none',
-    '## Decisions',
-    'none',
-    '## Dead ends',
-    'none',
-  ].join('\n')
+  return ['## Goal', 'the mod', '## Tasks', ...taskLines, '## Decisions', 'none', '## Dead ends', 'none'].join('\n')
 }
 
 function taskMd(title: string, extra: string[] = []): string {
@@ -62,7 +52,22 @@ function taskMd(title: string, extra: string[] = []): string {
 const BOARD = boardWith(['- [in progress] tests — red'])
 const TRACK = '- [in progress] fix the parser\n- [open] cover the archive'
 const TESTS: TaskFiles = { name: 'tests', task: taskMd('Green tests'), track: TRACK }
-const WORK: Work = { board: BOARD, tasks: [TESTS] }
+const OWNER = '# Owner decisions\n\n## How to work\n\n- «тесты зеленые перед коммитом»'
+const TRAPS = [
+  '---',
+  'kind: traps',
+  'about: traps of edits and tests; lessons — lessons.md',
+  '---',
+  '',
+  '## Edits',
+  '',
+  '### The script stopped on the third replacement',
+  '',
+  '**Cause.** the pattern matched twice.',
+  '',
+  '**Do.** check the count before writing.',
+].join('\n')
+const WORK: Work = { board: BOARD, owner: OWNER, tasks: [TESTS], knowledge: [{ name: 'traps.md', text: TRAPS }] }
 
 test('parseShiftInput refuses an empty letter, an unknown after and a bad about', () => {
   expect(parseShiftInput({ letter: ' ', after: 'wait', about: 'a' })).toContain('letter')
@@ -75,11 +80,12 @@ test('parseShiftInput refuses an empty letter, an unknown after and a bad about'
 
 test('about.md lists what the tracks closed in this stretch, what was archived and what is open', () => {
   const previous = {
-    work: { board: BOARD, tasks: [{ ...TESTS, track: '- [done] schema — applied\n- [in progress] webhooks' }] },
+    work: { ...WORK, tasks: [{ ...TESTS, track: '- [done] schema — applied\n- [in progress] webhooks' }] },
     index: null,
   }
   const now = {
     work: {
+      ...WORK,
       board: boardWith(['- [in progress] tests — red', '- [deferred] refunds — waits for the API']),
       tasks: [{ ...TESTS, track: '- [done] schema — applied\n- [done] webhooks — HMAC\n- [dropped] retries — the provider does it' }],
     },
@@ -114,6 +120,35 @@ test('the board is a state, not a diary', () => {
   expect(checkWork({ ...WORK, board: boardWith(['- [done] tests']) }, null)).toContain('task_archive')
   const long = boardWith(Array.from({ length: 200 }, (_, i) => `- [deferred] t${i}`))
   expect(checkWork({ ...WORK, board: long }, null)).toContain('diary')
+  expect(checkWork({ ...WORK, board: `${BOARD}\n## Owner decisions\nnone` }, null)).toContain('now live in .infinity-shift/owner.md')
+})
+
+test("the owner's decisions are a code of rules beside the board", () => {
+  expect(checkWork({ ...WORK, owner: null }, null)).toContain('No .infinity-shift/owner.md')
+  expect(checkWork({ ...WORK, owner: ' ' }, null)).toContain('"none"')
+  expect(checkWork({ ...WORK, owner: `${OWNER} (19.10.2026)` }, null)).toContain('rewrites the older line')
+  const long = Array.from({ length: 160 }, (_, i) => `- rule ${i}`).join('\n')
+  expect(checkWork({ ...WORK, owner: long }, null)).toContain('a log')
+  expect(checkWork({ ...WORK, owner: 'none' }, null)).toBeNull()
+})
+
+test('knowledge files have a kind, an about, their entry fields and room', () => {
+  const file = (name: string, text: string) => checkWork({ ...WORK, knowledge: [{ name, text }] }, null)
+  expect(file('traps.md', TRAPS)).toBeNull()
+  expect(file('traps-tooling.md', TRAPS)).toBeNull()
+  expect(file('notes.md', TRAPS.replace('kind: traps', 'kind: notes'))).toContain('one of traps, lessons, runbook, glossary')
+  expect(file('lessons.md', TRAPS)).toContain('traps.md or traps-<topic>.md')
+  expect(file('traps.md', TRAPS.replace(/about: .*/, 'about:'))).toContain('"about"')
+  expect(file('traps.md', TRAPS.replace('**Do.**', 'Do:'))).toContain('"### The script stopped on the third replacement"')
+  expect(file('traps.md', `${TRAPS}\n\nConfirmed 2026-10-19.`)).toContain('date')
+  expect(file('traps.md', `${TRAPS}\n${'x\n'.repeat(400)}`)).toContain('split the rest by topic')
+  const runbook = '---\nkind: runbook\nabout: commands\n---\n\n### Check\n\n**Shows.** green.'
+  expect(file('runbook.md', runbook)).toContain('a command block')
+  expect(file('runbook.md', runbook.replace('**Shows.**', '    bun run check\n\n**Shows.**'))).toBeNull()
+  expect(file('glossary.md', '---\nkind: glossary\nabout: terms\n---\n\n- **shift** — the boundary')).toBeNull()
+  expect(knowledgeMap(WORK.knowledge)).toBe(
+    '- .infinity-shift/knowledge/traps.md — traps of edits and tests; lessons — lessons.md (1 entries)',
+  )
 })
 
 test('the board and the task folders match, and each task is whole', () => {
@@ -129,6 +164,8 @@ test('the board and the task folders match, and each task is whole', () => {
 test('something must change between shifts, on the board or in a task', () => {
   expect(checkWork(WORK, WORK)).toContain('Nothing changed')
   expect(checkWork({ ...WORK, tasks: [{ ...TESTS, track: '- [done] fix the parser' }] }, WORK)).toBeNull()
+  expect(checkWork({ ...WORK, owner: 'none' }, WORK)).toBeNull()
+  expect(checkWork({ ...WORK, knowledge: [] }, WORK)).toBeNull()
 })
 
 test('archiving: done needs every item closed, the index line carries the title and the links', () => {
@@ -173,7 +210,7 @@ const DIR = '/proj/.infinity-shift/shifts/20261023-140509'
 
 type On = Parameters<TestBody>[1]
 
-function stubSession(on: On, files: Map<string, string>, logs: string[] = [], tokens = () => 50000) {
+function stubSession(on: On, files: Map<string, string>, logs: string[] = [], tokens = () => 50000, ignored = 0) {
   on('session.root', () => ({ value: '/proj' }))
   on('session.id', () => ({ value: 'sess' }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200000, tokens: tokens() }, rateLimits: [] } }))
@@ -194,10 +231,15 @@ function stubSession(on: On, files: Map<string, string>, logs: string[] = [], to
     for (const path of files.keys()) {
       if (path.startsWith(`${e.path}/`)) names.add(path.slice(e.path.length + 1).split('/')[0] ?? '')
     }
-    return { value: [...names].map(name => ({ name, kind: 'dir', size: 0, mtimeMs: 0, isLink: false })) }
+    return {
+      value: [...names].map(name => ({ name, kind: files.has(`${e.path}/${name}`) ? 'file' : 'dir', size: 0, mtimeMs: 0, isLink: false })),
+    }
   })
   on('process.run', (_$: unknown, e: { argv: readonly string[] }) => {
     const [command, from, to] = e.argv
+    if (command === 'git') {
+      return { value: { exitCode: ignored, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }
+    }
     if (command === 'mv' && from !== undefined && to !== undefined) {
       for (const [path, text] of [...files]) {
         if (!path.startsWith(`${from}/`)) continue
@@ -221,6 +263,8 @@ function project(): Map<string, string> {
   return new Map([
     ['/proj/.infinity-shift/letter.md', LETTER],
     ['/proj/.infinity-shift/board.md', BOARD],
+    ['/proj/.infinity-shift/owner.md', OWNER],
+    ['/proj/.infinity-shift/knowledge/traps.md', TRAPS],
     ['/proj/.infinity-shift/tasks/tests/task.md', TESTS.task ?? ''],
     ['/proj/.infinity-shift/tasks/tests/track.md', TRACK],
   ])
@@ -246,6 +290,8 @@ test('the shift tool snapshots the letter, the board and the tasks, and accepts 
   expect(files.get(`${DIR}/letter.md`)).toBe(LETTER)
   expect(files.get(`${DIR}/board.md`)).toBe(BOARD)
   expect(files.get(`${DIR}/tasks/tests/track.md`)).toBe(TRACK)
+  expect(files.get(`${DIR}/owner.md`)).toBe(OWNER)
+  expect(files.get(`${DIR}/knowledge/traps.md`)).toBe(TRAPS)
   expect(files.get(`${DIR}/about.md`)).toContain('result: pending')
 
   const again = await $.tool.call({
@@ -271,6 +317,19 @@ test('the shift tool refuses without a board or a letter', async ($, on) => {
   expect(noBoard.deny).toContain('No board')
   const noLetter = await $.tool.call({ tool: 'mcp__infinity-shift__shift', letter: 'missing.md', after: 'wait', about: 'ABOUT' })
   expect(noLetter.deny).toContain('No letter')
+})
+
+test('the shift tool refuses while the project would commit the records', async ($, on) => {
+  stubSession(on, project(), [], () => 50000, 1)
+  mock.clock(on, { now: AT })
+
+  const answer = await $.tool.call({
+    tool: 'mcp__infinity-shift__shift',
+    letter: '.infinity-shift/letter.md',
+    after: 'wait',
+    about: 'ABOUT',
+  })
+  expect(answer.deny).toContain('add "/.infinity-shift/" to the project\'s .gitignore')
 })
 
 test('continue: after the turn the history is let go with the hold, and the letter and the work start a turn', async ($, on) => {
@@ -301,6 +360,9 @@ test('continue: after the turn the history is let go with the hold, and the lett
   expect(submitted[0]).toContain('fixing tests')
   expect(submitted[0]).toContain('.infinity-shift/tasks/tests/track.md')
   expect(submitted[0]).toContain('cover the archive')
+  expect(submitted[0]).toContain('«тесты зеленые перед коммитом»')
+  expect(submitted[0]).toContain('knowledge/traps.md — traps of edits and tests')
+  expect(submitted[0]).not.toContain('third replacement')
   expect(files.get(`${DIR}/summary.md`)).toContain('SUMMARY')
   expect(files.get(`${DIR}/about.md`)).toContain('continuing')
   expect(files.get(`${DIR}/about.md`)).toContain('tokens: 120K → 50K')

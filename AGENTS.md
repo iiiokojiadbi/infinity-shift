@@ -37,7 +37,7 @@ docs/archive/              superseded design notes, kept for reasoning
 lefthook.yml  biome.json  package.json
 ```
 
-`.infinity-shift/` is the agent's own records for this project (board, tasks, archive, shifts). It is local and never committed.
+`.infinity-shift/` is the agent's own records for this project (board, owner decisions, knowledge, tasks, archive, shifts). It is local and never committed.
 
 ## Working on it
 
@@ -51,7 +51,7 @@ lefthook.yml  biome.json  package.json
 
 ## Facts that are not obvious from the code
 
-- Claude Code hooks module: imports only relative files inside the plugin folder and `claude-code`. Each file declares the state atoms it reads or writes — the engine's scan does not follow an atom through an import. `types/index.d.ts` must be self-contained, so it mirrors `ShiftAfter` and `Gauge` from the core.
+- Claude Code hooks module: imports only relative files inside the plugin folder and `claude-code`. Each file declares the state atoms it reads or writes — the engine's scan does not follow an atom through an import. `types/index.d.ts` must be self-contained, so it mirrors `ShiftAfter` and `Gauge` from the core. `$` may be passed across files only into a function declaration (`function f($) {…}`), never into an arrow bound to a name.
 - Text the model reads says only "shift": "compression", "summary", "compaction" make a model write a summary as text instead of calling the tool.
 - A hint goes inside the last tool result as a `<system-reminder>`: a separate block in that row is shown to the owner as their own message.
 - The `shift` tool argument is `after`, not `then`: an object with a `then` key looks like a promise.

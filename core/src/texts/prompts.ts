@@ -1,5 +1,5 @@
-import { ARCHIVE, BOARD, GUIDE_TOOL, HISTORY_TOOL, INDEX, TASKS } from '../layout'
-import { boardTasks } from '../records'
+import { ARCHIVE, BOARD, DIR, GUIDE_TOOL, HISTORY_TOOL, INDEX, KNOWLEDGE, OWNER, TASKS } from '../layout'
+import { boardTasks, knowledgeMap } from '../records'
 import type { Work } from '../types'
 
 export const ARCHIVED = (name: string) =>
@@ -9,7 +9,7 @@ export const ARCHIVED = (name: string) =>
 export function compactInstructions(hold: string, board: string, letter: string): string {
   return [
     'The agent is shifting: it continues this same work right after, from its own letter.',
-    `Its work board (${board}), its task folders (${TASKS}/) and its letter (${letter}) are on disk and will be delivered to it in full, so do not repeat tasks, statuses or next steps.`,
+    `Its work board (${board}), the owner's decisions (${OWNER}), its task folders (${TASKS}/), its knowledge (${KNOWLEDGE}/) and its letter (${letter}) are on disk and will be delivered to it, so do not repeat tasks, statuses, rules, lessons or next steps.`,
     'Keep, as precisely as possible, what it asked to hold below, and the reasoning behind its current approach; everything else in this history may be dropped or reduced to one line.',
     'Do not write next steps or a plan.',
     '',
@@ -19,9 +19,9 @@ export function compactInstructions(hold: string, board: string, letter: string)
 }
 
 // Added to an automatic compaction the agent did not ask for.
-export const UNASSISTED_INSTRUCTIONS = `The agent did not shift before this point, so there is no letter. Its work board may be on disk at ${BOARD}, its tasks in ${TASKS}/. Keep the overall goal and how it evolved, open tasks with their status, decisions with their reasons, exact paths, commands, error texts and values. End with a short "Where to continue" section.`
+export const UNASSISTED_INSTRUCTIONS = `The agent did not shift before this point, so there is no letter. Its work board may be on disk at ${BOARD}, the owner's decisions at ${OWNER}, its tasks in ${TASKS}/. Keep the overall goal and how it evolved, open tasks with their status, decisions with their reasons, exact paths, commands, error texts and values. End with a short "Where to continue" section.`
 
-// The board and the tasks in progress, whole: what the agent stands on after a shift.
+// The board, the owner's decisions and the tasks in progress, whole, and the map of knowledge: what the agent stands on after a shift.
 export function renderWork(work: Work | null): string {
   if (work === null) return `There is no board at ${BOARD}.`
   const doing = new Set(
@@ -37,7 +37,15 @@ export function renderWork(work: Work | null): string {
       ),
     )
 
-  return [`### ${BOARD}`, work.board.trim(), ...(tasks.length === 0 ? ['No task is in progress.'] : tasks)].join('\n\n')
+  return [
+    `### ${BOARD}`,
+    work.board.trim(),
+    `### ${OWNER}`,
+    (work.owner ?? 'none').trim(),
+    ...(tasks.length === 0 ? ['No task is in progress.'] : tasks),
+    `### ${KNOWLEDGE}/ — read a file when its topic comes up`,
+    knowledgeMap(work.knowledge),
+  ].join('\n\n')
 }
 
 function letterAndWork(opening: string, letter: string, work: Work | null, dir: string): string[] {
@@ -46,7 +54,7 @@ function letterAndWork(opening: string, letter: string, work: Work | null, dir: 
     '',
     letter.trim(),
     '',
-    'The board and the tasks in progress, as they are now:',
+    "The board, the owner's decisions, the tasks in progress and the map of knowledge, as they are now:",
     '',
     renderWork(work),
     '',
@@ -85,3 +93,5 @@ export function resumePrompt(letter: string, work: Work | null, dir: string): st
 
 export const ACCEPTED = (dir: string) =>
   `Shift accepted, the letter and the snapshots: ${dir}/. End the turn with one line and do nothing more: after the turn the stretch's history is let go, and you continue from the letter.`
+
+export const NOT_IGNORED = `${DIR}/ is not ignored by this project's git. The records are yours, not the project's: add "/${DIR}/" to the project's .gitignore and call again.`

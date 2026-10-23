@@ -11,7 +11,13 @@ import {
   HISTORY_DEFAULT,
   HISTORY_TOOL,
   INDEX,
+  KINDS,
+  KNOWLEDGE,
+  KNOWLEDGE_MAX_LINES,
   LETTER,
+  OWNER,
+  OWNER_MAX_LINES,
+  OWNER_SECTION,
   RESUME_COMMAND,
   STATUSES,
   TASK_SECTIONS,
@@ -27,11 +33,36 @@ const BOARD_RULES = `The board is a state, not a diary:
 Sections, as \`##\` headings, all required (an empty one says "none"):
 - "Goal" — what the project is for and how that changed, briefly;
 - "Tasks" — every open task, one line each: \`- [status] <name> — what matters\`, status: ${FOCUS.join(', ')}; deferred and waiting — with the reason;
-- "Owner decisions" — verbatim, those in force for the whole project; drop revoked ones;
 - "Decisions" — yours, for the whole project, with the reason;
 - "Dead ends" — approaches ruled out for the whole project, and why.
 
 A decision or dead end goes on the board only if it outlives any one task; otherwise it belongs to the task.`
+
+const OWNER_RULES = `\`${OWNER}\` is the owner's decisions in force for the whole project: a code of rules as it stands now, not a log. Verbatim where the owner's words matter, grouped under \`##\` headings by meaning, no dates, no "revoked" marks, no more than ${OWNER_MAX_LINES} lines; no decisions yet — "none". A new word is checked against what is written: it contradicts a rule — the rule is rewritten; it narrows, widens or refines one — the rule is rewritten to cover both; it is new — a new line. A rule changes or goes only on the owner's word. A decision that binds one task goes to that task's "${OWNER_SECTION}".`
+
+const KNOWLEDGE_KINDS = `- \`traps\` — what behaves not as expected: \`### <symptom>\`, then ${KINDS.traps.join(' and ')};
+- \`lessons\` — an approach that worked or failed: \`### <approach>\`, then ${KINDS.lessons.join(' and ')};
+- \`runbook\` — what is run and with what: \`### <task>\`, a command block, then ${KINDS.runbook.join(' and ')};
+- \`glossary\` — the project's own names, codes, abbreviations: \`- **<term>** — <meaning>\` lines.`
+
+const KNOWLEDGE_RULES = `\`${KNOWLEDGE}/\` is what you learned about doing this work that stays true for months: traps, lessons, commands, terms. One file per kind — \`<kind>.md\`, or \`<kind>-<topic>.md\` once split by topic; a frontmatter with \`kind\` and \`about\` (what is in the file and where the neighbouring files are); entries grouped under \`##\` headings by topic. Kinds and the fields every entry carries:
+${KNOWLEDGE_KINDS}
+
+No dates, no more than ${KNOWLEDGE_MAX_LINES} lines per file. Freshness is checked when an entry is used, not by age: an entry that lied is fixed or removed right away; a trap met a third time is rewritten as a rule. Writing into a section, clear out what is dead there: a trap about code that is gone, an entry a later one covers, a one-off case with no conclusion, a copy of the project's docs. After a shift only the map of knowledge comes back — read a file when its topic comes up.`
+
+const PLACES = `| What | Where |
+|---|---|
+| how the project is built, its conventions and commands every contributor needs | the project's own docs (\`AGENTS.md\`, \`docs/\`) — never copied into your records |
+| the owner's decision for the whole project | \`${OWNER}\` |
+| the owner's decision for one task | that task's "${OWNER_SECTION}" |
+| your decision or dead end for the whole project | the board |
+| your decision or dead end for one task | the task's \`task.md\` |
+| open work and its progress | \`${TASKS}/<name>/\` |
+| a trap, a lesson, a command or a term of your own work | \`${KNOWLEDGE}/\` |
+| what you were doing, what is next, what is unverified | the letter |
+| fits no row | \`${KNOWLEDGE}/\`, and tell the owner |
+
+Each fact lives in one place. Your records live in the project, not in a harness's memory: any agent that opens the project reads them.`
 
 const TASK_RULES = `A task is one line of work, split by meaning: a feature, an adapter, a migration. Each lives in \`${TASKS}/<name>/\`, \`<name>\` in lowercase latin with dashes:
 - \`task.md\` — what the task is: a \`# <title>\` line; optionally \`continues: ${ARCHIVE}/<name>/\` lines, one per archived task it picks up; then sections ${TASK_SECTIONS.map(s => `"${s}"`).join(', ')}, all required ("none" if empty). Update it as the task changes. Decisions and dead ends that matter only inside this task go here;
@@ -45,13 +76,23 @@ You work in stretches and decide yourself when to shift: the stretch's history i
 
 ## Board and tasks
 
-\`${BOARD}\` is the state of the work: which tasks are open and which you are doing now. Each task has its own folder with a description and a tracker. Keep them as you go, not before a shift: took a task, finished an item, dropped one, made a decision, heard the owner's decision, hit a dead end — fix the board or the task right away. No board — create it.
+\`${BOARD}\` is the state of the work: which tasks are open and which you are doing now. Each task has its own folder with a description and a tracker. Keep them as you go, not before a shift: took a task, finished an item, dropped one, made a decision, heard the owner's decision, hit a dead end — fix the board, \`${OWNER}\` or the task right away. No board — create it.
 
 ${BOARD_RULES}
 
 ${TASK_RULES}
 
 A finished or dropped task goes to the archive through \`${ARCHIVE_TOOL}\`; \`${INDEX}\` lists every archived task. A new task may continue an archived one. The project may also have a tracker of its own; it is a different thing — do not link tasks to it.
+
+## Owner's decisions and knowledge
+
+${OWNER_RULES}
+
+\`${KNOWLEDGE}/\` holds traps, lessons, commands and terms of your own work, one file per kind (${Object.keys(KINDS).join(', ')}); write an entry when you learn it, read a file when its topic comes up. The layout and entry fields are in \`${GUIDE_TOOL}\`.
+
+What goes where:
+
+${PLACES}
 
 ## When to shift
 
@@ -75,7 +116,10 @@ A shift is the boundary between stretches of work. You prepare your records, cal
 \`\`\`
 ${DIR}/
 ├── board.md          the board — which tasks are open, what you do now, project-wide decisions
+├── owner.md          the owner's decisions in force for the whole project
 ├── letter.md         the letter to yourself — written anew before every shift
+├── knowledge/        traps, lessons, commands, terms — read on demand
+│   └── <kind>[-<topic>].md
 ├── tasks/
 │   └── <name>/
 │       ├── task.md   what the task is, its decisions and dead ends
@@ -88,18 +132,38 @@ ${DIR}/
         ├── about.md      the shift in brief — strict structure below
         ├── letter.md     a copy of the letter
         ├── board.md      a snapshot of the board
+        ├── owner.md      a snapshot of the owner's decisions
         ├── index.md      a snapshot of the archive index
         ├── tasks/        snapshots of the open tasks
+        ├── knowledge/    a snapshot of the knowledge
         └── summary.md    what stayed in memory after the shift
 \`\`\`
+
+\`${DIR}/\` is yours, not the project's: the project's git ignores it (\`/${DIR}/\` in \`.gitignore\`), and the mod refuses a shift inside a git repository that does not. It needs no git of its own: every shift snapshots the board, the owner's decisions, the tasks and the knowledge, so removing a line is safe.
+
+## What goes where
+
+${PLACES}
 
 ## Board — \`${BOARD}\`
 
 ${BOARD_RULES}
 
+## Owner's decisions — \`${OWNER}\`
+
+${OWNER_RULES}
+
 ## Tasks — \`${TASKS}/\`
 
 ${TASK_RULES}
+
+## Knowledge — \`${KNOWLEDGE}/\`
+
+${KNOWLEDGE_RULES}
+
+## No dates
+
+No record carries a date: a model writes them everywhere, and records turn into a diary. Which of two rules is newer is never a question — a newer word rewrites the older line in place and a revoked one is removed, so only what is in force stands. When something was decided, the shift snapshots tell: \`${HISTORY_TOOL}\` finds the stretch, its folder holds the records as they were.
 
 ## Archive — \`${ARCHIVE}/\`
 
@@ -130,17 +194,20 @@ Written anew, whole, before every shift. Sections \`##\`, all required and non-e
    - \`about\` — one line up to ${ABOUT_MAX} characters: what the stretch did and where you stand. This is the history line you will look the stretch up by.
 4. End the turn with one line, no further actions.
 
-After the shift, the first message is "Shift done" with the letter, the board and the tasks in progress, whole; continue from "Next". With \`wait\` they come together with the owner's next message. Three \`continue\` in a row without the owner — the mod then waits for the owner itself.
+After the shift, the first message is "Shift done" with the letter, the board, the owner's decisions and the tasks in progress, whole, and the map of knowledge; continue from "Next". With \`wait\` they come together with the owner's next message. Three \`continue\` in a row without the owner — the mod then waits for the owner itself.
 
 ## When the mod refuses
 
 A refusal names the reason; fix it and call again:
 - no letter at the path, a section missing or empty;
-- no board, a section missing, more than ${BOARD_MAX_LINES} lines;
-- a date (\`YYYY-MM-DD\` or \`DD.MM.YYYY\`) on the board or in a task;
+- no board, a section missing, more than ${BOARD_MAX_LINES} lines, an "${OWNER_SECTION}" section left on it;
+- no \`${OWNER}\`, an empty one, more than ${OWNER_MAX_LINES} lines;
+- a knowledge file with an unknown \`kind\`, a name not of its kind, no \`about\`, more than ${KNOWLEDGE_MAX_LINES} lines, an entry without its fields;
+- a date (\`YYYY-MM-DD\` or \`DD.MM.YYYY\`) in any record;
+- \`${DIR}/\` not ignored by the project's git;
 - a board task with an unknown status or name, a task folder missing from the board, a board task without a folder;
 - a task without \`task.md\` or \`track.md\`, without a title or a section, a track item without a status;
-- nothing changed on the board or in the tasks since the last shift;
+- nothing changed in the records since the last shift;
 - \`about\` empty, multi-line or longer than ${ABOUT_MAX} characters.
 
 ## about.md — strict structure
@@ -175,4 +242,15 @@ How to read it: frontmatter — \`key: value\` lines between \`---\`; sections �
 
 - \`${HISTORY_TOOL}\` with \`count\` (default ${HISTORY_DEFAULT}) — the last shifts in brief: time, outcome, description, what was done, dropped and archived, and for the last one what is open. The stretch in detail — \`letter.md\`, \`board.md\` and \`tasks/\` of its folder.
 - \`${INDEX}\` — every archived task, one line each.
-- In a new session the owner calls \`/${RESUME_COMMAND}\`: the last shift's letter, the board and the tasks in progress come to you; continue from "Next".`
+- In a new session the owner calls \`/${RESUME_COMMAND}\`: the last shift's letter, the board, the owner's decisions, the tasks in progress and the map of knowledge come to you; continue from "Next".
+
+## Coming from \`.shift\`
+
+A project kept with the \`shift\`/\`unshift\` skills has \`.shift/\`. Move it once, before the first shift, entry by entry — nothing is summarized away:
+- \`knowledge/owner.md\` → \`${OWNER}\`, rules as they are;
+- \`knowledge/traps*.md\`, \`lessons*.md\`, \`runbook*.md\`, \`glossary*.md\` → \`${KNOWLEDGE}/\` under the same names: keep \`kind\` and \`about\`, rename the entry fields (Причина → Cause, Делать → Do, Почему → Why, Когда не годится → Not when, Покажет → Shows), drop the date lines and the generated tables of contents;
+- rows of \`.shift/AGENTS.md\` "Что где" that point into the project's docs stay a fact of the project: name them in a board decision; the rest is covered by the table above;
+- open items of the last snapshot's \`unfinished.md\` and its "С чего начать" → tasks; its owner decisions → \`${OWNER}\` or the task's; dead ends → the board or the task;
+- \`.shift/sessions/\` is not moved: it is history. \`.shift/\` itself is removed only on the owner's word.
+
+The text of records may stay in its language, and the owner is quoted verbatim; section names and entry fields are the ones above.`

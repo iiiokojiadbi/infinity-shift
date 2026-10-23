@@ -1,5 +1,5 @@
 import type { EngineInterface } from 'claude-code'
-import type { Snapshot, TaskFiles, Work } from './core/index'
+import type { KnowledgeFile, Snapshot, TaskFiles, Work } from './core/index'
 import { DIR } from './core/index'
 
 export async function readOrNull($: EngineInterface, path: string): Promise<string | null> {
@@ -9,16 +9,20 @@ export async function readOrNull($: EngineInterface, path: string): Promise<stri
   )
 }
 
-async function dirNames($: EngineInterface, path: string): Promise<string[]> {
+async function names($: EngineInterface, path: string, kind: 'dir' | 'file'): Promise<string[]> {
   const entries = await $.fs.list(path).catch(() => [])
 
   return entries
-    .filter(entry => entry.kind === 'dir')
+    .filter(entry => entry.kind === kind)
     .map(entry => entry.name)
     .sort()
 }
 
-// The board and every task folder under `base` (the project's `.infinity-shift/` or a shift's snapshot); null without a board.
+function dirNames($: EngineInterface, path: string): Promise<string[]> {
+  return names($, path, 'dir')
+}
+
+// The records under `base` (the project's `.infinity-shift/` or a shift's snapshot); null without a board.
 export async function readWork($: EngineInterface, base: string): Promise<Work | null> {
   const board = await readOrNull($, `${base}/board.md`)
   if (board === null) return null
@@ -30,7 +34,13 @@ export async function readWork($: EngineInterface, base: string): Promise<Work |
     })),
   )
 
-  return { board, tasks }
+  const knowledge: KnowledgeFile[] = await Promise.all(
+    (await names($, `${base}/knowledge`, 'file'))
+      .filter(name => name.endsWith('.md'))
+      .map(async name => ({ name, text: (await readOrNull($, `${base}/knowledge/${name}`)) ?? '' })),
+  )
+
+  return { board, owner: await readOrNull($, `${base}/owner.md`), tasks, knowledge }
 }
 
 export async function readSnapshot($: EngineInterface, base: string, index: string): Promise<Snapshot | null> {
