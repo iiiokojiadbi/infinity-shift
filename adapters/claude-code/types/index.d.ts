@@ -1,6 +1,6 @@
 // The contract must be self-contained: these two mirror the core's types of the same name.
 export type ShiftAfter = 'continue' | 'wait'
-export type Gauge = { base: number | null; hinted: number | null; unassisted: boolean; growth: Record<string, number> }
+export type Gauge = { base: number | null; hinted: number | null; unassisted: boolean; growth: Record<string, number>; whole: boolean }
 
 export type PendingShift = {
   after: ShiftAfter

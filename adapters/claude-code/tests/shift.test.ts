@@ -9,8 +9,10 @@ import {
   checkWork,
   compactInstructions,
   contentChars,
+  DOCTRINE,
   FRESH_GAUGE,
   frontmatter,
+  growthOf,
   indexLine,
   knowledgeMap,
   parseArchiveInput,
@@ -22,6 +24,7 @@ import {
   sections,
   segment,
   shiftDir,
+  shiftFill,
   shiftHint,
   withHint,
 } from '../hooks/core/index'
@@ -216,8 +219,16 @@ const DIR = '/proj/.infinity-shift/shifts/20261023-140509'
 
 type On = Parameters<TestBody>[1]
 
-function stubSession(on: On, files: Map<string, string>, logs: string[] = [], tokens = () => 50000, ignored = 0) {
+function stubSession(
+  on: On,
+  files: Map<string, string>,
+  logs: string[] = [],
+  tokens = () => 50000,
+  ignored = 0,
+  history: { role: string; content: unknown }[] = [],
+) {
   on('session.root', () => ({ value: '/proj' }))
+  on('session.messages', () => ({ value: history as never }))
   on('session.id', () => ({ value: 'sess' }))
   on('session.usage', () => ({ value: { startedAt: 0, context: { window: 200000, tokens: tokens() }, rateLimits: [] } }))
   on('fs.write', (_$: unknown, e: { path: string; text: string }) => {
@@ -397,6 +408,11 @@ test("wait: the letter rides along with the owner's next prompt, once", async ($
 
   expect(contexts[0] ?? []).toEqual([])
   expect(String(contexts[1])).toContain('fixing tests')
+  expect(String(contexts[1])).toMatch(/^<infinity-shift shift="[^"]+\/">/)
+  expect(String(contexts[1])).toContain('<letter path=')
+  expect(String(contexts[1])).toContain('<file path=".infinity-shift/board.md">')
+  expect(String(contexts[1]).trimEnd().endsWith('</infinity-shift>')).toBe(true)
+  expect(DOCTRINE.startsWith('<infinity-shift note=')).toBe(true)
   expect(String(contexts[1])).toContain('fix the parser')
   expect(contexts[2] ?? []).toEqual([])
   // Rows in the transcript only: the status line under the input was noise.
@@ -524,6 +540,29 @@ test('a hint rides on a tool result and on a prompt, and a let-go starts a new s
   expect(String(prompts[1])).toContain('without your shift')
   const status = await $.tool.call({ tool: 'mcp__infinity-shift__shift_status' })
   expect(String(status.result)).toContain('Since the last shift: +0.')
+})
+
+test('a fresh process takes the count back from the last shift and the history', async ($, on) => {
+  const files = project()
+  const about = (session: string) =>
+    `---\ndescription: d\nresult: shifted (95K → 6K), waiting for the owner\ntokens: 95K → 6K\nsession: ${session}\n---\n`
+  files.set('/proj/.infinity-shift/shifts/20260101-000000/about.md', about('sess'))
+  const history = [
+    { role: 'user', content: 'summary of the stretch' },
+    { role: 'assistant', content: [{ type: 'tool_use', id: 't1', name: 'Read', input: { file_path: 'a' } }] },
+    { role: 'user', content: [{ type: 'tool_result', tool_use_id: 't1', content: 'x'.repeat(5000) }] },
+  ]
+  stubSession(on, files, [], () => 150_000, 0, history)
+
+  const status = String((await $.tool.call({ tool: 'mcp__infinity-shift__shift_status' })).result)
+  expect(status).toContain('Since the last shift: +144K.')
+  expect(status).toContain('Grown mostly from: Read 99%.')
+
+  expect(shiftFill(about('other'), 'sess')).toBeNull()
+  expect(shiftFill(about('sess').replace('result: shifted', 'result: not shifted'), 'sess')).toBeNull()
+  expect(growthOf([{ role: 'user', content: [{ type: 'text', text: '<system-reminder>\nrules\n</system-reminder>' }] }])).toEqual({
+    'attachments and reminders': 42,
+  })
 })
 
 test('the shift tool refuses a bad call', async $ => {

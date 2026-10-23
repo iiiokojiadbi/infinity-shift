@@ -27,6 +27,8 @@ Marks in the text:
 
 **How the model sees it.** The words "compression", "summary", "compaction" are absent from the doctrine, the tool description and the hints: some models respond to them with the familiar `<analysis>`/`<summary>` text instead of a tool call (see "Lessons"). The model sees shifts: it works in stretches and shifts itself, it does not change, only what is in front of it does.
 
+**What came from the mod.** Everything the mod puts before the model is in a tag that names it: the doctrine in the system prompt is `<infinity-shift note="…">`, what a shift hands back is `<infinity-shift shift="<folder>/">`, with the letter in `<letter path="…">`, each record in `<file path="…">` and the map in `<knowledge path="…">`. Records carry headings and code blocks of their own, so neither a heading level nor a fence can mark where one file ends; a tag can, and the agent tells the mod's text from the owner's instructions at once.
+
 Division of roles: the digest is responsible for "what was", the letter — for "what next", the board and the tasks — for the state of the work. All of it stays on disk in the shift folder.
 
 ## Records
@@ -80,7 +82,7 @@ How it is done: the start of a stretch is the first fill after any shift or harn
 
 The hint goes inside the last tool result, wrapped in `<system-reminder>` — a text block of its own in that row was shown to the owner as their own message; between turns it goes into the context of the next message. It stays in the history: the harness gives no temporary channel to the model; loops are restrained by the rule "one hint per new growth".
 
-What it grew from: the harness gives no token count per row, so the mod counts the characters of every row of the main history by source — a tool by its name, the agent's own responses, the owner's messages, attachments and reminders — and names shares: "Mostly from: Read 67%, Bash 30%". Up to three sources of at least 5%; the count starts over with the stretch. A large share of tool output that is no longer needed is the strongest reason to shift.
+What it grew from: the harness gives no token count per row, so the mod counts the characters of every row of the main history by source — a tool by its name, the agent's own responses, the owner's messages, attachments and reminders — and names shares: "Mostly from: Read 67%, Bash 30%". Up to three sources of at least 5%; the count starts over with the stretch. The count lives in the harness's memory, so a fresh process (a restart, a resumed session) takes it back once: the base from the last shift's `about.md` if that shift was this session's, the growth from the history as it is. A large share of tool output that is no longer needed is the strongest reason to shift.
 
 A bare fill percentage is a bad signal. In billion-context, a model that sees "20%" anchors on it and refuses to fold. The percentage also says nothing about what to fold: windows come in 200K and 1M, and 30% of a window can be one useful file read or a dozen test logs.
 

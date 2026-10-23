@@ -1,6 +1,6 @@
 // Generated from core/src by scripts/sync-core.ts — edit the source, not this copy.
 import { BOARD, TASKS, TOOL } from './layout'
-import { formatK } from './markdown'
+import { formatK, frontmatter } from './markdown'
 import type { Gauge, Reading } from './types'
 
 // Every step is a share of the limit — the harness's own threshold, or the window when it is unknown — so the rhythm is the same on any window.
@@ -18,7 +18,15 @@ export function finalStep(limit: number): number {
   return Math.round(limit / 20)
 }
 
-export const FRESH_GAUGE: Gauge = { base: null, hinted: null, unassisted: false, growth: {} }
+export const FRESH_GAUGE: Gauge = { base: null, hinted: null, unassisted: false, growth: {}, whole: false }
+
+// Where a row of the history came from, as hints name it.
+export const SOURCES = {
+  responses: 'your responses',
+  owner: "the owner's messages",
+  attachments: 'attachments and reminders',
+  tools: 'tool results',
+} as const
 
 // One hint at most per new growth; an ignored one is not repeated until the history grows again.
 export function shiftHint(gauge: Gauge, { tokens, window, threshold }: Reading): { gauge: Gauge; text: string | null } {
@@ -88,6 +96,42 @@ export function contentChars(content: unknown): number {
 }
 
 const IMAGE_CHARS = 6000
+
+// The fill right after the last shift, if that shift let this session's history go; about.md keeps it as "95K → 6K".
+export function shiftFill(about: string, sessionId: string): number | null {
+  const meta = frontmatter(about)
+  if (meta.get('session') !== sessionId || !meta.get('result')?.startsWith('shifted')) return null
+  const after = /→ (\d+)K$/.exec(meta.get('tokens') ?? '')?.[1]
+
+  return after === undefined ? null : Number(after) * 1000
+}
+
+// The growth of a history already there, counted the way rows are counted as they come: a tool result by the tool's name.
+export function growthOf(messages: readonly { role: string; content: unknown }[]): Record<string, number> {
+  const tools = new Map<string, string>()
+  let gauge: Gauge = FRESH_GAUGE
+  for (const message of messages) {
+    const blocks = Array.isArray(message.content)
+      ? (message.content as Record<string, unknown>[])
+      : [{ type: 'text', text: message.content }]
+    if (message.role === 'assistant') {
+      for (const block of blocks) if (block.type === 'tool_use') tools.set(String(block.id), String(block.name))
+      gauge = addGrowth(gauge, SOURCES.responses, contentChars(blocks))
+      continue
+    }
+    for (const block of blocks) {
+      const source =
+        block.type === 'tool_result'
+          ? (tools.get(String(block.tool_use_id)) ?? SOURCES.tools)
+          : typeof block.text === 'string' && block.text.trimStart().startsWith('<system-reminder>')
+            ? SOURCES.attachments
+            : SOURCES.owner
+      gauge = addGrowth(gauge, source, contentChars(block))
+    }
+  }
+
+  return gauge.growth
+}
 
 // What the status tool answers: the fill, the limit, the growth since the last shift, when the next hints come, and what grew.
 export function renderStatus(gauge: Gauge, { tokens, window, threshold }: Reading): string {

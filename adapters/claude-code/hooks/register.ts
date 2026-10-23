@@ -36,6 +36,7 @@ import {
   renderHistory,
   resolvePath,
   resumePrompt,
+  SOURCES,
   STATUS_DESCRIPTION,
   STATUS_SCHEMA,
   STATUS_TOOL,
@@ -244,7 +245,7 @@ export const register: Register = on => {
   on('session.compact', async ($, e, next) => {
     const done = await next(e)
     if (e.agentId === undefined && e.trigger !== 'precompute' && done.messages !== undefined) {
-      await update($, gauge, () => ({ ...FRESH_GAUGE, unassisted: e.trigger === 'auto' }))
+      await update($, gauge, () => ({ ...FRESH_GAUGE, unassisted: e.trigger === 'auto', whole: true }))
     }
 
     return done
@@ -257,10 +258,10 @@ export const register: Register = on => {
 
 // Who a row came from, as the hint names it; rows outside the model's history are not counted.
 function growthSource(door: string, origin: { kind: string; tool?: string } | undefined): string | null {
-  if (door === 'tool-result') return origin?.kind === 'tool' && origin.tool !== undefined ? origin.tool : 'tool results'
-  if (door === 'response') return 'your responses'
-  if (door === 'prompt' || door === 'command') return "the owner's messages"
+  if (door === 'tool-result') return origin?.kind === 'tool' && origin.tool !== undefined ? origin.tool : SOURCES.tools
+  if (door === 'response') return SOURCES.responses
+  if (door === 'prompt' || door === 'command') return SOURCES.owner
   if (door === 'compaction' || door === 'notice' || door === 'queue') return null
 
-  return 'attachments and reminders'
+  return SOURCES.attachments
 }

@@ -1,3 +1,6 @@
+// The mod's name: the tag its texts in the model's context are wrapped in name it.
+export const MOD = 'infinity-shift'
+
 export const TOOL = 'shift'
 
 export const GUIDE_TOOL = 'shift_guide'
