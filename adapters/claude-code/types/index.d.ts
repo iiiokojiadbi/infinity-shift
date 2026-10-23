@@ -15,7 +15,7 @@ export type PendingShift = {
 }
 
 // The letter waiting for the owner's next message, and the shift folder it came from.
-export type WaitNote = { context: string; dir: string }
+export type WaitNote = { context: string; dir: string; files: string[] }
 
 declare module 'claude-code' {
   interface PluginState {

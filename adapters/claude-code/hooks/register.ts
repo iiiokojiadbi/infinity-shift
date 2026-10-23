@@ -219,7 +219,7 @@ export const register: Register = on => {
     const entered = await next({ ...hinted, context: [...(hinted.context ?? []), note.context] })
     await update($, waitNote, () => null)
     // Logged once the message has entered, so the row stands under it.
-    $.ui.log(`the letter, the board and the tasks in progress went with your message — ${note.dir}/letter.md`)
+    $.ui.log(`went with your message: ${note.files.join(', ')} — ${note.dir}/letter.md`)
 
     return entered
   }).catch(($, e, next) => {

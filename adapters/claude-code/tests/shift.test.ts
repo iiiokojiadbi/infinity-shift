@@ -401,7 +401,7 @@ test("wait: the letter rides along with the owner's next prompt, once", async ($
     expect.stringContaining('waiting for you, the letter goes with your next message'),
     'entered: a notification',
     'entered: owner speaks',
-    expect.stringContaining('went with your message'),
+    expect.stringContaining('went with your message: letter.md, board.md, owner.md, tasks/tests/, knowledge/ (the map) — '),
     'entered: owner again',
   ])
   expect(logs.some(line => line.startsWith('status:'))).toBe(false)

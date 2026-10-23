@@ -1,7 +1,17 @@
 import type { EngineInterface } from 'claude-code'
 import { atom, read, update } from 'claude-code'
 import type { PendingShift } from '../types'
-import { compactInstructions, continuePrompt, DIR, formatK, MAX_AUTO_STREAK, renderAbout, renderSummary, waitContext } from './core/index'
+import {
+  compactInstructions,
+  continuePrompt,
+  DIR,
+  deliveredFiles,
+  formatK,
+  MAX_AUTO_STREAK,
+  renderAbout,
+  renderSummary,
+  waitContext,
+} from './core/index'
 import { readWork } from './disk'
 
 // The engine lists a module's state from atoms declared in the same file, so each file declares the ones it touches.
@@ -45,7 +55,7 @@ export async function handOver($: EngineInterface): Promise<void> {
     return
   }
 
-  await update($, waitNote, () => ({ context: waitContext(shift.letter, work, shift.dir), dir: shift.dir }))
+  await update($, waitNote, () => ({ context: waitContext(shift.letter, work, shift.dir), dir: shift.dir, files: deliveredFiles(work) }))
   const why = isCapped ? `waiting: ${MAX_AUTO_STREAK} shifts in a row without the owner` : 'waiting for the owner'
   await outcome(`shifted (${shrank}), ${why}`, after, summary.length, before)
   const capped = isCapped ? `, ${MAX_AUTO_STREAK} in a row without you` : ''

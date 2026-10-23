@@ -24,18 +24,11 @@ export const UNASSISTED_INSTRUCTIONS = `The agent did not shift before this poin
 // The board, the owner's decisions and the tasks in progress, whole, and the map of knowledge: what the agent stands on after a shift.
 export function renderWork(work: Work | null): string {
   if (work === null) return `There is no board at ${BOARD}.`
-  const doing = new Set(
-    boardTasks(work.board)
-      .filter(t => t.status === 'in progress')
-      .map(t => t.name),
+  const tasks = inProgress(work).map(t =>
+    [`### ${TASKS}/${t.name}/task.md`, '', (t.task ?? '').trim(), '', `### ${TASKS}/${t.name}/track.md`, '', (t.track ?? '').trim()].join(
+      '\n',
+    ),
   )
-  const tasks = work.tasks
-    .filter(t => doing.has(t.name))
-    .map(t =>
-      [`### ${TASKS}/${t.name}/task.md`, '', (t.task ?? '').trim(), '', `### ${TASKS}/${t.name}/track.md`, '', (t.track ?? '').trim()].join(
-        '\n',
-      ),
-    )
 
   return [
     `### ${BOARD}`,
@@ -46,6 +39,26 @@ export function renderWork(work: Work | null): string {
     `### ${KNOWLEDGE}/ — read a file when its topic comes up`,
     knowledgeMap(work.knowledge),
   ].join('\n\n')
+}
+
+function inProgress(work: Work): Work['tasks'] {
+  const doing = new Set(
+    boardTasks(work.board)
+      .filter(t => t.status === 'in progress')
+      .map(t => t.name),
+  )
+
+  return work.tasks.filter(t => doing.has(t.name))
+}
+
+// What a shift hands back, as paths inside the records folder: the owner's row names them.
+export function deliveredFiles(work: Work | null): string[] {
+  if (work === null) return ['letter.md']
+  const owner = work.owner === null ? [] : ['owner.md']
+  const tasks = inProgress(work).map(t => `tasks/${t.name}/`)
+  const knowledge = work.knowledge.length === 0 ? [] : ['knowledge/ (the map)']
+
+  return ['letter.md', 'board.md', ...owner, ...tasks, ...knowledge]
 }
 
 function letterAndWork(opening: string, letter: string, work: Work | null, dir: string): string[] {
