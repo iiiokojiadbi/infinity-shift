@@ -218,10 +218,12 @@ export const register: Register = on => {
     // Cleared only once the message has entered with it: a failed hook keeps the letter for the next one.
     const entered = await next({ ...hinted, context: [...(hinted.context ?? []), note.context] })
     await update($, waitNote, () => null)
+    // Logged once the message has entered, so the row stands under it.
+    $.ui.log(`the letter, the board and the tasks in progress went with your message — ${note.dir}/letter.md`)
 
     return entered
   }).catch(($, e, next) => {
-    // Silent before, the letter once went missing with no trace; a failure is the one row worth showing.
+    // Silent before, the letter once went missing with no trace.
     $.ui.log(`the letter did not go with your message (${next.error?.kind ?? 'unknown'}: ${next.error?.message ?? 'no message'})`)
 
     return next(e)

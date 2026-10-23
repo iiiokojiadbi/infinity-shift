@@ -396,8 +396,15 @@ test("wait: the letter rides along with the owner's next prompt, once", async ($
   expect(String(contexts[1])).toContain('fixing tests')
   expect(String(contexts[1])).toContain('fix the parser')
   expect(contexts[2] ?? []).toEqual([])
-  // A shift that went well shows the owner nothing.
-  expect(logs).toEqual(['entered: a notification', 'entered: owner speaks', 'entered: owner again'])
+  // Rows in the transcript only: the status line under the input was noise.
+  expect(logs).toEqual([
+    expect.stringContaining('waiting for you, the letter goes with your next message'),
+    'entered: a notification',
+    'entered: owner speaks',
+    expect.stringContaining('went with your message'),
+    'entered: owner again',
+  ])
+  expect(logs.some(line => line.startsWith('status:'))).toBe(false)
   expect(files.get(`${DIR}/about.md`)).toContain('waiting for the owner')
 })
 
