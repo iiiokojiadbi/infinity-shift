@@ -37,7 +37,7 @@ export function renderWork(work: Work | null): string {
       ),
     )
 
-  return [`### ${BOARD}`, '', work.board.trim(), ...(tasks.length === 0 ? ['', 'No task is in progress.'] : ['', ...tasks])].join('\n')
+  return [`### ${BOARD}`, work.board.trim(), ...(tasks.length === 0 ? ['No task is in progress.'] : tasks)].join('\n\n')
 }
 
 function letterAndWork(opening: string, letter: string, work: Work | null, dir: string): string[] {
