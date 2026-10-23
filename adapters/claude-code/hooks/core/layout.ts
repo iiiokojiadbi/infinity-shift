@@ -7,6 +7,8 @@ export const HISTORY_TOOL = 'shift_history'
 
 export const ARCHIVE_TOOL = 'task_archive'
 
+export const STATUS_TOOL = 'shift_status'
+
 export const RESUME_COMMAND = 'shift-resume'
 
 // Consecutive self-continued shifts before the mod stops and waits for the owner.

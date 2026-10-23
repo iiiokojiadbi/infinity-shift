@@ -62,7 +62,7 @@ Records and everything the agent reads are in English: the readers are agents.
 
 ## Hint
 
-**[done in the Claude Code mod]** — soft, final and a safety net; the "what it grew from" breakdown and `shift_status` do not exist yet.
+**[done in the Claude Code mod]** — soft, final, a safety net, the "what it grew from" breakdown and `shift_status`.
 
 How it is done: the start of a stretch is the first fill after any shift or harness compaction. Every threshold is a share of the limit L — the harness's auto-compaction threshold, or the window when it is unknown; Claude Code's threshold is read once, when the window is half full. Windows differ several times over (1M, 272K, 128K), and fixed steps made hints frequent on small windows and rare on large ones; shares keep the rhythm the same.
 
@@ -79,6 +79,8 @@ How it is done: the start of a stretch is the first fill after any shift or harn
 | 128K | — | ~102K |
 
 The hint goes inside the last tool result, wrapped in `<system-reminder>` — a text block of its own in that row was shown to the owner as their own message; between turns it goes into the context of the next message. It stays in the history: the harness gives no temporary channel to the model; loops are restrained by the rule "one hint per new growth".
+
+What it grew from: the harness gives no token count per row, so the mod counts the characters of every row of the main history by source — a tool by its name, the agent's own responses, the owner's messages, attachments and reminders — and names shares: "Mostly from: Read 67%, Bash 30%". Up to three sources of at least 5%; the count starts over with the stretch. A large share of tool output that is no longer needed is the strongest reason to shift.
 
 A bare fill percentage is a bad signal. In billion-context, a model that sees "20%" anchors on it and refuses to fold. The percentage also says nothing about what to fold: windows come in 200K and 1M, and 30% of a window can be one useful file read or a dozen test logs.
 
@@ -102,7 +104,7 @@ Limiters taken from billion-context:
 - **The soft hint says outright that it is not an alarm** and that a real shortage will get a separate warning. This is how their `efficiencyNote` is worded.
 - **The hint does not settle in the history, if the harness allows it.** Instructions saved as messages pushed the model toward loops again in their case (`UNIFIED_LOOP_SPEC.md`).
 
-Besides the hint — the `shift_status` tool on the agent's request: growth, fill in tokens, the largest pieces.
+Besides the hint — the `shift_status` tool on the agent's request: the fill against the window, where the harness lets the history go by itself, the growth since the last shift, when the next hints come, and what it grew from.
 
 ## Core and adapters
 

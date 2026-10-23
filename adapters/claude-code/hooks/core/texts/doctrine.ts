@@ -19,6 +19,7 @@ import {
   OWNER_MAX_LINES,
   OWNER_SECTION,
   RESUME_COMMAND,
+  STATUS_TOOL,
   STATUSES,
   TASK_SECTIONS,
   TASKS,
@@ -100,14 +101,15 @@ ${PLACES}
 
 At a stage boundary: an item or a task is done, a commit is made, the plan moved to its next step — and the stretch's history is not needed whole any more. Not in the middle of a thought that is easier to finish than to write down.
 
-The mod hints with a "Shift hint" line at the end of a tool result or next to a message: when the history has grown noticeably since the last shift, and when room is running out. A hint is not an order: you decide.
+The mod hints with a "Shift hint" line at the end of a tool result or next to a message: when the history has grown noticeably since the last shift, and when room is running out. A hint names what the history grew from most. A hint is not an order: you decide.
 
 ## Tools
 
 - \`${GUIDE_TOOL}\` — how to shift properly and how the files are laid out. Read it before the first shift of a session.
 - \`${TOOL}\` — make a shift.
 - \`${ARCHIVE_TOOL}\` — archive a finished or dropped task.
-- \`${HISTORY_TOOL}\` — what happened in past shifts, briefly.`
+- \`${HISTORY_TOOL}\` — what happened in past shifts, briefly.
+- \`${STATUS_TOOL}\` — how full the history is, when the next hints come, and what it grew from.`
 
 export const GUIDE = `# Shift: how it works and how to do it right
 

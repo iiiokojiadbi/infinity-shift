@@ -10,6 +10,11 @@ export const HISTORY_DESCRIPTION = `Past shifts in brief, oldest first: time, ou
 
 export const ARCHIVE_DESCRIPTION = `Archive a finished or dropped task: moves ${TASKS}/<name>/ to ${ARCHIVE}/<name>/ and adds its line to ${INDEX}. Then remove the task from the board.`
 
+export const STATUS_DESCRIPTION =
+  'How full the history is: used of the window, where the harness lets it go by itself, the growth since the last shift, when the next shift hints come, and what the history grew from most. Read-only.'
+
+export const STATUS_SCHEMA = { type: 'object', properties: {} }
+
 export const GUIDE_SCHEMA = { type: 'object', properties: {} }
 
 export const HISTORY_SCHEMA = {

@@ -3,8 +3,9 @@ import type { KINDS } from './layout'
 
 export type ShiftAfter = 'continue' | 'wait'
 
-// The fill the stretch started from, the fill at the last hint, and a harness-made let-go the agent is not told of yet.
-export type Gauge = { base: number | null; hinted: number | null; unassisted: boolean }
+// The fill the stretch started from, the fill at the last hint, a harness-made let-go the agent is not told of yet,
+// and the characters the stretch's history grew by, per source.
+export type Gauge = { base: number | null; hinted: number | null; unassisted: boolean; growth: Record<string, number> }
 
 export type ShiftInput = { letter: string; after: ShiftAfter; about: string }
 

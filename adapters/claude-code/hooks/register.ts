@@ -36,6 +36,9 @@ import {
   renderHistory,
   resolvePath,
   resumePrompt,
+  STATUS_DESCRIPTION,
+  STATUS_SCHEMA,
+  STATUS_TOOL,
   sections,
   segment,
   shiftDir,
@@ -48,7 +51,7 @@ import {
 } from './core/index'
 import { previousShift, readOrNull, readSnapshot, readWork, shiftNames } from './disk'
 import { handOver } from './handover'
-import { takeHint } from './hint'
+import { countGrowth, statusText, takeHint } from './hint'
 import { OWNER_ORIGINS, PLUGIN } from './state'
 
 // The engine lists a module's state from atoms declared in the same file, so each file declares the ones it touches.
@@ -68,6 +71,7 @@ export const register: Register = on => {
     await $.tool.register({ name: GUIDE_TOOL, description: GUIDE_DESCRIPTION, inputSchema: GUIDE_SCHEMA, isDeferred: false })
     await $.tool.register({ name: HISTORY_TOOL, description: HISTORY_DESCRIPTION, inputSchema: HISTORY_SCHEMA, isDeferred: false })
     await $.tool.register({ name: ARCHIVE_TOOL, description: ARCHIVE_DESCRIPTION, inputSchema: ARCHIVE_SCHEMA, isDeferred: false })
+    await $.tool.register({ name: STATUS_TOOL, description: STATUS_DESCRIPTION, inputSchema: STATUS_SCHEMA, isDeferred: false })
     await $.command.register({
       name: RESUME_COMMAND,
       description: 'Pick up the work from the last shift: the letter, the board and the tasks in progress go to the agent',
@@ -163,6 +167,10 @@ export const register: Register = on => {
 
   on('tool.call', { tool: 'mcp__infinity-shift__shift_guide' }, () => ({ result: GUIDE }))
 
+  on('tool.call', { tool: 'mcp__infinity-shift__shift_status' }, async $ => ({ result: await statusText($) })).catch((_$, e, next) =>
+    next.called ? next(e) : { deny: `${PLUGIN}: the status did not read (${next.error?.kind ?? 'unknown'}).` },
+  )
+
   on('tool.call', { tool: 'mcp__infinity-shift__shift_history' }, async ($, e) => {
     const count = parseHistoryCount(e as unknown as Record<string, unknown>)
     if (typeof count === 'string') return { deny: count }
@@ -198,9 +206,12 @@ export const register: Register = on => {
     return ended
   })
 
-  // A hint rides inside a tool result: mid-turn, at the agent's next look, with no row of its own.
-  on('session.append', { door: 'tool-result' }, async ($, e, next) => {
+  // Every row of the main history is counted by source; a hint rides inside a tool result: mid-turn, at the agent's next look, with no row of its own.
+  on('session.append', async ($, e, next) => {
     if (e.agentId !== undefined) return next(e)
+    const source = growthSource(e.door, e.origin)
+    if (source !== null) await countGrowth($, source, e.message.content)
+    if (e.door !== 'tool-result') return next(e)
     const hint = await takeHint($)
     if (hint === null) return next(e)
 
@@ -242,4 +253,14 @@ export const register: Register = on => {
   on('session.compact', { trigger: 'auto' }, (_$, e, next) =>
     next({ ...e, instructions: [e.instructions, UNASSISTED_INSTRUCTIONS].filter(Boolean).join('\n\n') }),
   ).catch((_$, e, next) => next(e))
+}
+
+// Who a row came from, as the hint names it; rows outside the model's history are not counted.
+function growthSource(door: string, origin: { kind: string; tool?: string } | undefined): string | null {
+  if (door === 'tool-result') return origin?.kind === 'tool' && origin.tool !== undefined ? origin.tool : 'tool results'
+  if (door === 'response') return 'your responses'
+  if (door === 'prompt' || door === 'command') return "the owner's messages"
+  if (door === 'compaction' || door === 'notice' || door === 'queue') return null
+
+  return 'attachments and reminders'
 }

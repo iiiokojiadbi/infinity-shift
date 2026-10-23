@@ -2,11 +2,13 @@ import type { TestBody } from 'claude-code/testing'
 import { expect, mock, test } from 'claude-code/testing'
 import type { TaskFiles, Work } from '../hooks/core/index'
 import {
+  addGrowth,
   addToIndex,
   checkArchive,
   checkLetter,
   checkWork,
   compactInstructions,
+  contentChars,
   FRESH_GAUGE,
   frontmatter,
   indexLine,
@@ -16,6 +18,7 @@ import {
   parseShiftInput,
   renderAbout,
   renderHistory,
+  renderStatus,
   sections,
   segment,
   shiftDir,
@@ -468,6 +471,23 @@ test('hints: soft every max(100K, 25%) of the limit, none right before the final
   expect(big(41_000)).toBeNull()
 })
 
+test('a hint and the status name what the history grew from', () => {
+  expect(contentChars([{ type: 'text', text: 'abcd' }, { type: 'tool_use', input: { a: 1 } }, { type: 'image' }])).toBe(4 + 7 + 6000)
+  expect(contentChars([{ type: 'tool_result', content: [{ type: 'text', text: 'xyz' }] }])).toBe(3)
+
+  let gauge = addGrowth(addGrowth(addGrowth(FRESH_GAUGE, 'Read', 600), 'Bash', 300), 'your responses', 30)
+  gauge = addGrowth(gauge, 'Read', 70)
+  gauge = shiftHint(gauge, { tokens: 20_000, window: 1_000_000, threshold: undefined }).gauge
+  expect(shiftHint(gauge, { tokens: 270_000, window: 1_000_000, threshold: undefined }).text).toContain('Mostly from: Read 67%, Bash 30%.')
+
+  const status = renderStatus(gauge, { tokens: 300_000, window: 1_000_000, threshold: 800_000 })
+  expect(status).toContain('Used: 300K of 1000K window; the harness lets the history go by itself at 800K.')
+  expect(status).toContain('Since the last shift: +280K.')
+  expect(status).toContain('next soft hint at 220K; final at 640K.')
+  expect(status).toContain('Grown mostly from: Read 67%, Bash 30%.')
+  expect(renderStatus(FRESH_GAUGE, { tokens: undefined, window: 1_000_000, threshold: undefined })).toContain('No reading yet')
+})
+
 test('a hint rides on a tool result and on a prompt, and a let-go starts a new stretch', async ($, on) => {
   const files = project()
   let tokens = 20000
@@ -491,6 +511,7 @@ test('a hint rides on a tool result and on a prompt, and a let-go starts a new s
   const hinted = (await toolResult()).message?.content
   expect(hinted?.length).toBe(1)
   expect(JSON.stringify(hinted?.[0])).toContain('"content":"ok\\n\\n<system-reminder>\\nShift hint')
+  expect(JSON.stringify(hinted?.[0])).toContain('Mostly from: Bash')
   tokens = 170000
   expect(JSON.stringify(await toolResult())).not.toContain('Shift hint')
   tokens = 175000
@@ -501,6 +522,8 @@ test('a hint rides on a tool result and on a prompt, and a let-go starts a new s
   tokens = 30000
   await $.prompt.submit({ text: 'owner', origin: { kind: 'composer' }, wait: false })
   expect(String(prompts[1])).toContain('without your shift')
+  const status = await $.tool.call({ tool: 'mcp__infinity-shift__shift_status' })
+  expect(String(status.result)).toContain('Since the last shift: +0.')
 })
 
 test('the shift tool refuses a bad call', async $ => {

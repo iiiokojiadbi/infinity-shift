@@ -1,6 +1,6 @@
 // The contract must be self-contained: these two mirror the core's types of the same name.
 export type ShiftAfter = 'continue' | 'wait'
-export type Gauge = { base: number | null; hinted: number | null; unassisted: boolean }
+export type Gauge = { base: number | null; hinted: number | null; unassisted: boolean; growth: Record<string, number> }
 
 export type PendingShift = {
   after: ShiftAfter
@@ -23,6 +23,7 @@ declare module 'claude-code' {
     'mcp__infinity-shift__shift': { letter: string; after: ShiftAfter; about: string }
     'mcp__infinity-shift__shift_guide': Record<never, never>
     'mcp__infinity-shift__shift_history': { count?: number }
+    'mcp__infinity-shift__shift_status': Record<never, never>
     'mcp__infinity-shift__task_archive': { name: string; outcome: 'done' | 'dropped'; about: string }
   }
 

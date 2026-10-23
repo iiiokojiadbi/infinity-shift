@@ -17,7 +17,7 @@ core/                      shared logic, pure TypeScript, no harness imports
   src/records.ts           checks of the letter, the board and the task folders
   src/archive.ts           archiving checks and the index line
   src/history.ts           shift folders, the stretch's segment, about.md, shift_history
-  src/hint.ts              when to hint a shift and how the hint rides in a tool result
+  src/hint.ts              when to hint a shift, what the history grew from, shift_status, how the hint rides in a tool result
   src/texts/doctrine.ts    the "Shift" system-prompt section and the full guide
   src/texts/tools.ts       tool descriptions and schemas
   src/texts/prompts.ts     compaction instructions and the messages after a shift
